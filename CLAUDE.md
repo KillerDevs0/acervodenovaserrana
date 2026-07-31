@@ -109,8 +109,12 @@ acesso a: `editores`, `auditoria`, colunas de consentimento e registros despubli
 
 Nenhuma destas eu consigo fazer — todas exigem o dashboard do Supabase:
 
-1. **Aplicar a migration 0003** no SQL Editor. Em 31/07/2026 ainda não estava aplicada, então
-   as policies permissivas da 0001 seguem valendo e nada da seção de segurança está em vigor.
+1. **Aplicar a migration 0003** no SQL Editor — é o bloqueio mais urgente. Em 31/07/2026 ainda
+   não estava aplicada, então as policies permissivas da 0001 seguem valendo e nada da seção de
+   segurança está em vigor. Além disso o **site não carrega**: as leituras pedem a coluna
+   `publicado`, que a 0003 cria, e as cinco coleções respondem 400
+   (`column ... does not exist`). Hoje as seções mostram o aviso de falha do
+   `components/EstadoConteudo.tsx`; antes dele, apareciam vazias e sem explicação.
 2. **Desativar cadastro público** em Authentication → Sign In / Providers. Estava aberto.
 3. **Rotacionar a secret key** — uma `sb_secret_...` foi colada no chat em 31/07/2026. Ela
    ignora todo o RLS.
@@ -126,9 +130,14 @@ Login, escrita autenticada, reordenação, a constraint de consentimento recusan
 e o registro em `auditoria`. Tudo isso depende de existir um editor cadastrado. **Não
 descreva esses caminhos como funcionando.**
 
-O que já foi verificado: leitura das cinco coleções, RLS recusando escrita anônima, seed
-completo (3 documentários, 4 histórias, 6 fotos, 7 marcos, 8 estados), build limpo, rotas
-servindo no build de produção.
+O que já foi verificado: as cinco tabelas existem e devolvem o seed (3 documentários, 4
+histórias, 6 fotos, 7 marcos, 8 estados) quando a query **não** pede `publicado`; RLS recusando
+escrita anônima; build limpo; rotas servindo no build de produção.
+
+Cuidado com a frase "leitura verificada": ela valeu antes da 0003 entrar no código. Como o
+`repositorio.ts` passou a pedir `publicado`, a leitura que o app faz de fato falha hoje —
+verificar com as queries desta seção, que espelham `colunasPublicas`, e não com um `select`
+qualquer.
 
 ## Verificar o estado atual
 
