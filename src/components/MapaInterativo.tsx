@@ -20,7 +20,7 @@ export default function MapaInterativo() {
   const alternarFixado = (id: number) => setFixado((atual) => (atual === id ? null : id))
 
   return (
-    <section className="py-24 bg-card">
+    <section id="mapa" className="py-24 bg-card">
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <div className="mb-12">
           <p className="text-[10px] uppercase tracking-[0.3em] text-accent mb-4">Mapa Interativo</p>

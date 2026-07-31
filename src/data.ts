@@ -216,7 +216,42 @@ export const timeline: MarcoTemporal[] = [
   { ano: 2024, titulo: 'Acervo Cultural Digital', desc: 'Lançamento do acervo digital em parceria com a Política Nacional Aldir Blanc — PNAB.' },
 ]
 
-export const navItems = ['Início', 'O Acervo', 'Mapa', 'Documentários', 'Histórias', 'Linha do Tempo']
+/**
+ * Destinos da navegação — usados pelo menu do topo e pelo rodapé.
+ *
+ * Antes era uma lista de rótulos com `href="#"`, então nenhum item levava a
+ * lugar algum. Cada destino agora aponta para o `id` de uma seção; três deles
+ * ("Documentários", "Histórias", "Fotografias") não são seções próprias, e sim
+ * abas dentro do Acervo — daí o campo `aba`, que o Nav usa para abrir a aba
+ * certa antes de rolar.
+ */
+export type AbaAcervo = 'documentarios' | 'historias' | 'fotografias'
+
+export interface ItemNav {
+  rotulo: string
+  /** `id` da seção de destino, sem `#`. */
+  secao: string
+  /** Quando o destino é o Acervo, qual aba abrir. */
+  aba?: AbaAcervo
+}
+
+export const navItems: ItemNav[] = [
+  { rotulo: 'Início', secao: 'inicio' },
+  { rotulo: 'O Acervo', secao: 'acervo' },
+  { rotulo: 'Mapa', secao: 'mapa' },
+  { rotulo: 'Documentários', secao: 'acervo', aba: 'documentarios' },
+  { rotulo: 'Histórias', secao: 'acervo', aba: 'historias' },
+  { rotulo: 'Linha do Tempo', secao: 'linha-do-tempo' },
+]
+
+/** Endereços reais da Secretaria, usados pelos botões de contato e pelo rodapé. */
+export const CONTATO = {
+  email: 'cultura@novaserrana.mg.gov.br',
+  // O rodapé trazia `tel:+5537` truncado, que abre o discador vazio.
+  telefone: '+553733242000',
+  telefoneVisivel: '(37) 3324-2000',
+  pnab: 'https://www.gov.br/cultura/pt-br/assuntos/pnab',
+}
 
 export const brasilPath = `
   M 270,28 L 310,15 L 360,18 L 405,38 L 440,48 L 468,42 L 495,52

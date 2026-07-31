@@ -28,18 +28,33 @@ O conteúdo do acervo nunca é importado direto pelos componentes: tudo passa pe
 src/
   Site.tsx                 site público
   components/              seções (Hero, Acervo, Mapa, LinhaDoTempo…)
-  data.ts                  conteúdo semente e tipos (não é a fonte de verdade)
+    EstadoConteudo.tsx     aviso de carregando/erro/vazio das seções
+    FichaDocumentario.tsx  modal do card de documentário
+    Lightbox.tsx           ampliação das fotografias
+    FormularioMemoria.tsx  formulário "Enviar Memória"
+  data.ts                  conteúdo semente, tipos, navItems e CONTATO
   lib/supabase.ts          cliente; expõe `supabaseConfigurado`
+  lib/navegacao.ts         hash ↔ seção/aba do acervo
   store/
     content.tsx            hook useConteudo — decide entre banco e localStorage
     repositorio.ts         CRUD contra o Supabase
     mapeamento.ts          tradução app ↔ banco e colunas públicas
+    contribuicoes.ts       envio público e fila de curadoria
   admin/
     schemas.ts             descreve as coleções — dirige formulários e tabelas
     auth.tsx               Supabase Auth ou senha de demonstração
-    paginas/               Entrar, VisaoGeral, Listagem, Editor
+    paginas/               Entrar, VisaoGeral, Listagem, Editor, Contribuicoes
 supabase/migrations/       0001 estrutura · 0002 seed · 0003 segurança
+                           0004 contribuições do público
 ```
+
+### Navegação por hash
+
+O menu e o rodapé apontam para `id` de seção (`#acervo`, `#mapa`, `#linha-do-tempo`).
+Três destinos — `#documentarios`, `#historias`, `#fotografias` — são **abas** dentro do
+Acervo, não seções: `Acervo` escuta `hashchange`, troca de aba e rola até a seção, porque
+o navegador não acha elemento com esse `id`. O contrato vive em `lib/navegacao.ts`; se
+mudar rótulo de aba, mude `ABAS_ACERVO` e `navItems` juntos.
 
 ### O painel é dirigido por schema
 
@@ -101,9 +116,20 @@ Decisões tomadas, e o porquê:
   um visitante pediria `select=consentimento_obs` na API e leria onde está o termo assinado.
 - **`auditoria` registra toda escrita**, legível só por admin e sem policy de escrita, para
   que a trilha não seja alterável por quem a gerou.
+- **O público escreve em `contribuicoes`, nunca em `historias`** (migration 0004). O
+  formulário "Enviar Memória" é a única porta de escrita anônima do sistema, e ela dá para
+  uma caixa de entrada de curadoria: tabela sem grant de `select` para `anon`, fora do site,
+  com `insert` limitado a cinco colunas nominais. Sem essa lista, um POST definiria
+  `situacao` e mexeria na fila.
+
+  A separação existe porque `historias` é lida pelo site: se o público inserisse lá, um erro
+  de policy publicaria nome de gente real sem curadoria. Aproveitar uma contribuição é
+  cadastrar a história à mão, depois de colher o termo — **não crie botão de "publicar
+  direto" a partir da contribuição.**
 
 Ao mexer em policy, migration ou leitura pública, verifique se um anônimo continua sem
-acesso a: `editores`, `auditoria`, colunas de consentimento e registros despublicados.
+acesso a: `editores`, `auditoria`, `contribuicoes`, colunas de consentimento e registros
+despublicados.
 
 ## Pendências do usuário (verifique antes de assumir)
 
@@ -123,12 +149,27 @@ Nenhuma destas eu consigo fazer — todas exigem o dashboard do Supabase:
    insert into public.editores (usuario_id, email, nome, papel)
    select id, email, 'Nome', 'admin' from auth.users where email = 'x@y.com';
    ```
+5. **Aplicar a migration 0004** (contribuições do público), depois da 0003 — ela depende de
+   `e_editor()` e do trigger de auditoria criados lá. Até então o formulário "Enviar Memória"
+   avisa que o envio não está liberado e aponta o e-mail da Secretaria, e a página
+   Contribuições do painel pede a migration. Verificado em 31/07/2026: a tabela não existe.
 
 ### Nunca testado contra o banco
 
 Login, escrita autenticada, reordenação, a constraint de consentimento recusando publicação,
 e o registro em `auditoria`. Tudo isso depende de existir um editor cadastrado. **Não
 descreva esses caminhos como funcionando.**
+
+Somam-se a isso, desde 31/07/2026, os caminhos da 0004: gravação de contribuição, a fila de
+curadoria lendo, a troca de situação e as notas. Nenhum roda antes da migration.
+
+### Nunca visto renderizado
+
+As ferramentas de preview não estavam disponíveis na sessão de 31/07/2026, então **toda a
+interface interativa foi verificada por leitura de código e build, não no navegador**: abas
+por hash, ficha do documentário, lightbox, formulário e a página Contribuições. O build passa
+e os destinos de hash foram conferidos contra os `id` existentes, mas ninguém abriu a tela.
+Ao retomar, valide primeiro: rolagem do menu, Esc/setas nos modais, foco voltando ao fechar.
 
 O que já foi verificado: as cinco tabelas existem e devolvem o seed (3 documentários, 4
 histórias, 6 fotos, 7 marcos, 8 estados) quando a query **não** pede `publicado`; RLS recusando
@@ -154,6 +195,16 @@ curl -s "https://jjgnmpzgffjyfdwkdlfr.supabase.co/auth/v1/settings" \
 ```
 
 `false` = cadastro aberto, ainda vulnerável.
+
+```bash
+curl -s -X POST "https://jjgnmpzgffjyfdwkdlfr.supabase.co/rest/v1/contribuicoes" \
+  -H "apikey: $(grep ANON_KEY .env.local | cut -d= -f2)" -H "Content-Type: application/json" \
+  -d '{"nome":"Teste","contato":"t@t.com","relato":"relato de teste com mais de vinte caracteres","periodo":"","autoriza_contato":true}'
+```
+
+`PGRST205` = 0004 pendente. `201` = aplicada (apague a linha de teste pelo painel depois).
+Note que é `PGRST205`, não o `42P01` do Postgres: o PostgREST recusa antes de executar a
+query — `store/contribuicoes.ts` trata os dois.
 
 ## Preferências de trabalho observadas
 

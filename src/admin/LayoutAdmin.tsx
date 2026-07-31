@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { ExternalLink, LayoutDashboard, LogOut, Menu, X } from 'lucide-react'
+import { ExternalLink, Inbox, LayoutDashboard, LogOut, Menu, X } from 'lucide-react'
 import { LOGO_SRC } from '../data'
 import { useConteudo } from '../store/content'
 import { useAuth } from './auth'
@@ -55,6 +55,19 @@ export default function LayoutAdmin() {
           {rotulo}
         </NavLink>
       ))}
+
+      {/*
+        Separado das coleções: contribuição não é acervo, é a caixa de entrada
+        do formulário do site, e o que está lá não aparece em página pública.
+      */}
+      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 px-4 pt-5 pb-2">
+        Recebidos
+      </p>
+
+      <NavLink to="/admin/contribuicoes" className={classeItem} onClick={() => setMenuAberto(false)}>
+        <Inbox size={14} aria-hidden="true" />
+        Contribuições
+      </NavLink>
     </nav>
   )
 

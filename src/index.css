@@ -29,6 +29,21 @@ html {
   scroll-behavior: smooth;
 }
 
+/*
+ * O cabeçalho é fixo com 4rem de altura, então o alvo de um link `#secao`
+ * pararia atrás dele. A margem de rolagem desconta essa faixa, com uma folga.
+ */
+[id] {
+  scroll-margin-top: 5rem;
+}
+
+/* Quem prefere menos movimento não deve levar rolagem animada. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 body {
   margin: 0;
   background-color: var(--background);

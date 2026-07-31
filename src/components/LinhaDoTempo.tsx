@@ -14,7 +14,7 @@ export default function LinhaDoTempo() {
     trilha.current?.scrollBy({ left: direcao * LARGURA_MARCO, behavior: 'smooth' })
 
   return (
-    <section className="py-24 bg-card overflow-hidden">
+    <section id="linha-do-tempo" className="py-24 bg-card overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <div className="flex items-end justify-between mb-14 flex-wrap gap-4">
           <div>

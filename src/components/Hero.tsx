@@ -5,7 +5,7 @@ const NOISE_SVG =
 
 export default function Hero() {
   return (
-    <section className="relative min-h-screen flex items-end pt-16 overflow-hidden">
+    <section id="inicio" className="relative min-h-screen flex items-end pt-16 overflow-hidden">
       <div className="absolute inset-0">
         <img
           className="w-full h-full object-cover"
@@ -47,15 +47,26 @@ export default function Hero() {
           para a comunidade que ergueu esta cidade.
         </p>
 
+        {/*
+          Eram dois `button` sem `onClick`. Como o destino é outra seção da
+          própria página, o certo é link: funciona com teclado, com o meio do
+          mouse e mostra o endereço na barra de status.
+        */}
         <div className="flex flex-col sm:flex-row gap-4">
-          <button className="flex items-center justify-center gap-3 bg-accent text-accent-foreground px-8 py-4 font-semibold uppercase tracking-widest text-xs hover:opacity-90 transition-opacity group">
+          <a
+            href="#acervo"
+            className="flex items-center justify-center gap-3 bg-accent text-accent-foreground px-8 py-4 font-semibold uppercase tracking-widest text-xs hover:opacity-90 transition-opacity group"
+          >
             Explorar o Acervo
             <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-          </button>
-          <button className="flex items-center justify-center gap-3 border border-foreground/25 text-foreground px-8 py-4 font-semibold uppercase tracking-widest text-xs hover:border-foreground/50 transition-colors">
+          </a>
+          <a
+            href="#documentarios"
+            className="flex items-center justify-center gap-3 border border-foreground/25 text-foreground px-8 py-4 font-semibold uppercase tracking-widest text-xs hover:border-foreground/50 transition-colors"
+          >
             <Play size={13} />
-            Ver Documentário
-          </button>
+            Ver Documentários
+          </a>
         </div>
       </div>
 

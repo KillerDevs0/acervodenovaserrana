@@ -1,5 +1,5 @@
 import { Mail, Phone } from 'lucide-react'
-import { LOGO_SRC, navItems } from '../data'
+import { CONTATO, LOGO_SRC, navItems } from '../data'
 
 export default function Footer() {
   return (
@@ -46,28 +46,33 @@ export default function Footer() {
           <div className="flex flex-col gap-2 md:items-end">
             {navItems.map((item) => (
               <a
-                key={item}
+                key={item.rotulo}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                href="#"
+                href={`#${item.aba ?? item.secao}`}
               >
-                {item}
+                {item.rotulo}
               </a>
             ))}
           </div>
-          <div className="mt-6 flex gap-4 md:justify-end">
+          {/*
+            O telefone era `tel:+5537` — truncado, abria o discador sem número.
+            Os contatos agora vêm de `CONTATO` e mostram o valor por escrito:
+            ícone sozinho não diz para onde leva, e o número é útil visível.
+          */}
+          <div className="mt-6 flex flex-col gap-2 md:items-end">
             <a
-              className="text-muted-foreground hover:text-accent transition-colors"
-              href="mailto:cultura@novaserrana.mg.gov.br"
-              aria-label="E-mail"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-accent transition-colors"
+              href={`mailto:${CONTATO.email}`}
             >
-              <Mail size={16} />
+              <Mail size={15} className="shrink-0" />
+              {CONTATO.email}
             </a>
             <a
-              className="text-muted-foreground hover:text-accent transition-colors"
-              href="tel:+5537"
-              aria-label="Telefone"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-accent transition-colors"
+              href={`tel:${CONTATO.telefone}`}
             >
-              <Phone size={16} />
+              <Phone size={15} className="shrink-0" />
+              {CONTATO.telefoneVisivel}
             </a>
           </div>
         </div>

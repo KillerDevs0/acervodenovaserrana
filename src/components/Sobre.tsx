@@ -1,12 +1,33 @@
-const stats = [
-  { valor: '12k+', rotulo: 'Famílias Catalogadas' },
-  { valor: '340+', rotulo: 'Depoimentos em Vídeo' },
-  { valor: '8', rotulo: 'Estados de Origem' },
-]
+import { useConteudo } from '../store/content'
 
 export default function Sobre() {
+  const { conteudoPublico } = useConteudo()
+  const { estados, documentarios, historias } = conteudoPublico
+
+  /**
+   * Os números vinham fixos no código ("12k+", "340+", "8") e nunca mudavam,
+   * então contradiziam o acervo assim que alguém publicava algo pelo painel.
+   *
+   * Duas contagens saem do próprio conteúdo. "Famílias catalogadas" é a soma de
+   * `familias` por estado — o mesmo dado que alimenta o mapa — arredondada para
+   * baixo em milhares, porque é estimativa de pesquisa e cravar unidade daria
+   * falsa precisão.
+   */
+  const familias = estados.reduce((total, e) => total + e.familias, 0)
+  const stats = [
+    {
+      valor: familias >= 1000 ? `${Math.floor(familias / 1000)}k+` : String(familias),
+      rotulo: 'Famílias Catalogadas',
+    },
+    {
+      valor: String(documentarios.length + historias.length),
+      rotulo: 'Registros no Acervo',
+    },
+    { valor: String(estados.length), rotulo: 'Estados de Origem' },
+  ]
+
   return (
-    <section className="py-28 px-6 lg:px-12">
+    <section id="sobre" className="py-28 px-6 lg:px-12">
       <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
         <div>
           <p className="text-[10px] uppercase tracking-[0.3em] text-accent mb-5">Sobre o Projeto</p>
@@ -23,9 +44,12 @@ export default function Sobre() {
             trabalho e pela migração.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-12">
-            Mais de <strong className="text-foreground">12.000 famílias migrantes</strong> ajudaram a
-            construir Nova Serrana ao longo de sete décadas. Aqui, suas histórias têm nome, voz e
-            imagem.
+            Mais de{' '}
+            <strong className="text-foreground">
+              {familias.toLocaleString('pt-BR')} famílias migrantes
+            </strong>{' '}
+            ajudaram a construir Nova Serrana ao longo de sete décadas. Aqui, suas histórias têm
+            nome, voz e imagem.
           </p>
 
           <div className="grid grid-cols-3 gap-6 border-t border-border pt-8">

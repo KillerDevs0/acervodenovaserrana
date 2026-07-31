@@ -1,10 +1,27 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
-import { LOGO_SRC, navItems } from '../data'
+import { CONTATO, LOGO_SRC, navItems } from '../data'
+import type { ItemNav } from '../data'
+import { hashAtual, rolarPara } from '../lib/navegacao'
 
 export default function Nav() {
   const [open, setOpen] = useState(false)
+
+  /**
+   * O destino de cada item: a aba do acervo quando existe, senão a seção.
+   * Aba e seção compartilham o mesmo espaço de hash — ver `lib/navegacao.ts`.
+   */
+  const destino = (item: ItemNav) => `#${item.aba ?? item.secao}`
+
+  /**
+   * Clicar no item que já é o hash atual não muda a URL, e sem mudança de hash
+   * o navegador não rola. Nesse caso rolamos à mão.
+   */
+  const aoClicar = (item: ItemNav) => {
+    setOpen(false)
+    if (hashAtual() === (item.aba ?? item.secao)) rolarPara(item.secao)
+  }
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/90 backdrop-blur-md">
@@ -26,17 +43,20 @@ export default function Nav() {
         <div className="hidden lg:flex items-center gap-7">
           {navItems.map((item) => (
             <a
-              key={item}
+              key={item.rotulo}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest"
-              href="#"
+              href={destino(item)}
+              onClick={() => aoClicar(item)}
             >
-              {item}
+              {item.rotulo}
             </a>
           ))}
           <span className="inline-block h-4 w-px bg-border" />
           <a
             className="text-xs px-4 py-2 border border-accent text-accent hover:bg-accent hover:text-accent-foreground transition-all uppercase tracking-widest"
-            href="#"
+            href={CONTATO.pnab}
+            target="_blank"
+            rel="noopener noreferrer"
           >
             PNAB
           </a>
@@ -63,17 +83,19 @@ export default function Nav() {
           <div className="px-5 py-4 flex flex-col gap-4">
             {navItems.map((item) => (
               <a
-                key={item}
+                key={item.rotulo}
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest"
-                href="#"
-                onClick={() => setOpen(false)}
+                href={destino(item)}
+                onClick={() => aoClicar(item)}
               >
-                {item}
+                {item.rotulo}
               </a>
             ))}
             <a
               className="text-xs px-4 py-2 border border-accent text-accent text-center uppercase tracking-widest"
-              href="#"
+              href={CONTATO.pnab}
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={() => setOpen(false)}
             >
               PNAB
