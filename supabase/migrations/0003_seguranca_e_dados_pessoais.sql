@@ -258,7 +258,7 @@ declare
   t text;
 begin
   foreach t in array array[
-    'documentarios', 'historias', 'fotos', 'marcos_temporais', 'estados_origem'
+    'documentarios', 'fotos', 'marcos_temporais', 'estados_origem'
   ]
   loop
     execute format('revoke all on public.%I from anon', t);
@@ -266,3 +266,13 @@ begin
   end loop;
 end;
 $$;
+
+-- `historias` recebe grant por coluna, não na tabela inteira.
+--
+-- O RLS decide QUAIS LINHAS cada um vê, mas não quais colunas: com grant na
+-- tabela, um visitante consegue pedir `select=consentimento_obs` na API e ler
+-- onde está guardado o termo assinado e que limites o titular impôs. Esses
+-- campos são de gestão do acervo e não têm por que sair do painel.
+revoke all on public.historias from anon;
+grant select (id, ordem, publicado, nome, origem, chegada, profissao, foto, citacao)
+  on public.historias to anon;

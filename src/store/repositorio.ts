@@ -19,15 +19,22 @@ function exigirCliente() {
   return supabase
 }
 
-/** Lê as cinco coleções em paralelo, já ordenadas para exibição. */
-export async function buscarTudo(): Promise<Conteudo> {
+/**
+ * Lê as cinco coleções em paralelo, já ordenadas para exibição.
+ *
+ * `completo` pede todas as colunas, inclusive o registro de consentimento das
+ * histórias — use apenas no painel, com editor logado. A leitura do site pede
+ * colunas nominais para não trafegar dados de gestão até o navegador de
+ * visitantes.
+ */
+export async function buscarTudo(completo = false): Promise<Conteudo> {
   const cliente = exigirCliente()
 
   const respostas = await Promise.all(
     COLECOES.map((colecao) =>
       cliente
         .from(mapas[colecao].tabela)
-        .select('*')
+        .select(completo ? '*' : mapas[colecao].colunasPublicas)
         .order('ordem', { ascending: true })
         .order('id', { ascending: true }),
     ),
@@ -39,7 +46,9 @@ export async function buscarTudo(): Promise<Conteudo> {
     if (resposta.error) {
       throw new Error(`Não foi possível carregar ${colecao}: ${resposta.error.message}`)
     }
-    const linhas = (resposta.data ?? []) as Record<string, unknown>[]
+    // A lista de colunas é montada em tempo de execução, então o supabase-js
+    // não consegue inferir a forma da linha — daí o passo por `unknown`.
+    const linhas = (resposta.data ?? []) as unknown as Record<string, unknown>[]
     conteudo[colecao] = linhas.map((linha) => daBanco(colecao, linha)) as never
   })
 

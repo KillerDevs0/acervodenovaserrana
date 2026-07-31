@@ -137,7 +137,8 @@ interface ContextoConteudo {
   erro: string | null
   /** `false` quando rodando em localStorage. */
   remoto: boolean
-  recarregar: () => Promise<void>
+  /** `completo` inclui as colunas de gestão; só o painel deve pedir. */
+  recarregar: (completo?: boolean) => Promise<void>
   criar: (colecao: ColecaoId, dados: Record<string, unknown>) => Promise<void>
   atualizar: (colecao: ColecaoId, id: number, dados: Record<string, unknown>) => Promise<void>
   remover: (colecao: ColecaoId, id: number) => Promise<void>
@@ -157,18 +158,35 @@ export function ProvedorConteudo({ children }: { children: ReactNode }) {
   const [carregando, setCarregando] = useState(remoto)
   const [erro, setErro] = useState<string | null>(null)
 
-  const recarregar = useCallback(async () => {
-    if (!remoto) return
-    setCarregando(true)
-    try {
-      setConteudo(await repo.buscarTudo())
-      setErro(null)
-    } catch (e) {
-      setErro(mensagem(e))
-    } finally {
-      setCarregando(false)
-    }
-  }, [remoto])
+  /**
+   * `completo` traz também as colunas de gestão (consentimento). O painel pede
+   * assim depois do login; o site nunca precisa disso. Se o editor não tiver
+   * permissão, a leitura completa falha — então cai para a versão pública.
+   */
+  const recarregar = useCallback(
+    async (completo = false) => {
+      if (!remoto) return
+      setCarregando(true)
+      try {
+        setConteudo(await repo.buscarTudo(completo))
+        setErro(null)
+      } catch (e) {
+        if (completo) {
+          try {
+            setConteudo(await repo.buscarTudo(false))
+            setErro(null)
+            return
+          } catch {
+            /* cai no erro original abaixo */
+          }
+        }
+        setErro(mensagem(e))
+      } finally {
+        setCarregando(false)
+      }
+    },
+    [remoto],
+  )
 
   useEffect(() => {
     void recarregar()

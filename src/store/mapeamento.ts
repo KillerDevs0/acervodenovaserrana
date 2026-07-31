@@ -15,14 +15,48 @@ export interface MapaColecao {
   tabela: string
   /** campo na aplicação → coluna no banco. Omitidos têm o mesmo nome. */
   alias: Record<string, string>
+  /**
+   * Colunas que o site público pode ler.
+   *
+   * `*` entregaria tudo que a tabela tem, e em `historias` isso inclui o
+   * registro de consentimento — onde fica anotado o paradeiro do termo assinado
+   * e os limites que o titular impôs. Visitante não precisa disso, então a
+   * leitura anônima pede colunas nominais.
+   */
+  colunasPublicas: string
 }
 
+/** Colunas de controle presentes em toda tabela do acervo. */
+const CONTROLE = 'id, ordem, publicado'
+
 export const mapas: Record<ColecaoId, MapaColecao> = {
-  documentarios: { tabela: 'documentarios', alias: {} },
-  historias: { tabela: 'historias', alias: {} },
-  fotos: { tabela: 'fotos', alias: { leg: 'legenda', span: 'destaque' } },
-  timeline: { tabela: 'marcos_temporais', alias: { desc: 'descricao' } },
-  estados: { tabela: 'estados_origem', alias: { desc: 'descricao' } },
+  documentarios: {
+    tabela: 'documentarios',
+    alias: {},
+    colunasPublicas: `${CONTROLE}, titulo, subtitulo, duracao, ano, diretor, thumb`,
+  },
+  historias: {
+    tabela: 'historias',
+    alias: {},
+    // Sem `consentimento_em` nem `consentimento_obs`: são dados de gestão do
+    // acervo, não conteúdo editorial.
+    colunasPublicas: `${CONTROLE}, nome, origem, chegada, profissao, foto, citacao`,
+  },
+  fotos: {
+    tabela: 'fotos',
+    alias: { leg: 'legenda', span: 'destaque' },
+    colunasPublicas: `${CONTROLE}, url, legenda, destaque`,
+  },
+  timeline: {
+    tabela: 'marcos_temporais',
+    alias: { desc: 'descricao' },
+    colunasPublicas: `${CONTROLE}, ano, titulo, descricao`,
+  },
+  estados: {
+    tabela: 'estados_origem',
+    alias: { desc: 'descricao' },
+    colunasPublicas: `${CONTROLE}, estado, sigla, familias, cor, cx, cy, descricao`,
+  },
 }
 
 /** Aplicação → banco. Descarta `id` e `ordem`, controlados pelo repositório. */

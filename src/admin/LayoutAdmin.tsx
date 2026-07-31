@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { ExternalLink, LayoutDashboard, LogOut, Menu, X } from 'lucide-react'
 import { LOGO_SRC } from '../data'
+import { useConteudo } from '../store/content'
 import { useAuth } from './auth'
 import { schemas } from './schemas'
 
@@ -17,7 +18,15 @@ function classeItem({ isActive }: { isActive: boolean }) {
 export default function LayoutAdmin() {
   const [menuAberto, setMenuAberto] = useState(false)
   const { sair, email } = useAuth()
+  const { recarregar, remoto } = useConteudo()
   const navegar = useNavigate()
+
+  // A carga inicial é a pública (o site monta antes do login). Dentro do
+  // painel, relê com as colunas de gestão para que o consentimento apareça
+  // nos formulários.
+  useEffect(() => {
+    if (remoto) void recarregar(true)
+  }, [remoto, recarregar])
 
   const aoSair = async () => {
     await sair()
