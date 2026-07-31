@@ -1,58 +1,133 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+import { supabase, supabaseConfigurado } from '../lib/supabase'
 
 /**
- * Controle de acesso do painel — DEMONSTRAÇÃO APENAS.
+ * Controle de acesso do painel.
  *
- * A senha é comparada no navegador e a sessão fica em sessionStorage, ou seja:
- * qualquer pessoa com acesso ao JavaScript da página consegue contornar esta
- * verificação. Ela serve para desenhar o fluxo do painel, não para proteger
- * conteúdo real.
+ * Dois modos, espelhando o store de conteúdo:
  *
- * Antes de publicar, mova a autenticação para o servidor: sessão em cookie
- * httpOnly, hash de senha no backend e verificação em todas as rotas de
- * escrita da API. Enquanto o conteúdo vive em localStorage, não há nada
- * no servidor para proteger — e nada que impeça a edição direta pelo console.
+ *   · **Supabase Auth** — com `.env.local` preenchido. A sessão é emitida e
+ *     validada pelo servidor, e é ela que o RLS usa para autorizar escrita.
+ *     Burlar o front-end não dá acesso ao banco.
+ *   · **Demonstração** — sem as chaves. A senha é comparada aqui no navegador,
+ *     o que NÃO protege nada: existe só para o projeto rodar sem
+ *     infraestrutura. Como nesse modo o conteúdo também é local, não há o que
+ *     proteger.
  */
 
-const SESSAO_KEY = 'acervo-ns:sessao-admin'
+const SESSAO_DEMO_KEY = 'acervo-ns:sessao-admin'
 const SENHA_DEMO = 'acervo2024'
 
 interface ContextoAuth {
   autenticado: boolean
-  entrar: (senha: string) => boolean
-  sair: () => void
+  /** Verdadeiro enquanto a sessão existente é verificada. */
+  verificando: boolean
+  /** `true` quando o login é validado pelo servidor. */
+  remoto: boolean
+  /** E-mail do editor logado, quando disponível. */
+  email: string | null
+  /** Retorna `null` em caso de sucesso, ou a mensagem de erro. */
+  entrar: (email: string, senha: string) => Promise<string | null>
+  sair: () => Promise<void>
 }
 
 const Contexto = createContext<ContextoAuth | null>(null)
 
+/** Traduz os erros mais comuns do Supabase Auth. */
+function traduzir(mensagem: string) {
+  if (/invalid login credentials/i.test(mensagem)) return 'E-mail ou senha incorretos.'
+  if (/email not confirmed/i.test(mensagem)) {
+    return 'Confirme o e-mail antes de entrar. Verifique sua caixa de entrada.'
+  }
+  if (/failed to fetch|network/i.test(mensagem)) {
+    return 'Não foi possível falar com o servidor. Verifique sua conexão.'
+  }
+  return mensagem
+}
+
 export function ProvedorAuth({ children }: { children: ReactNode }) {
-  const [autenticado, setAutenticado] = useState(() => {
-    try {
-      return sessionStorage.getItem(SESSAO_KEY) === '1'
-    } catch {
-      return false
-    }
-  })
+  const remoto = supabaseConfigurado
+  const [autenticado, setAutenticado] = useState(false)
+  const [email, setEmail] = useState<string | null>(null)
+  const [verificando, setVerificando] = useState(remoto)
 
   useEffect(() => {
-    try {
-      if (autenticado) sessionStorage.setItem(SESSAO_KEY, '1')
-      else sessionStorage.removeItem(SESSAO_KEY)
-    } catch {
-      /* armazenamento indisponível: a sessão dura só a navegação atual */
+    if (!remoto) {
+      // Modo demonstração: a sessão dura a aba.
+      try {
+        setAutenticado(sessionStorage.getItem(SESSAO_DEMO_KEY) === '1')
+      } catch {
+        /* armazenamento indisponível */
+      }
+      return
     }
-  }, [autenticado])
 
-  const entrar = useCallback((senha: string) => {
-    const ok = senha === SENHA_DEMO
-    if (ok) setAutenticado(true)
-    return ok
-  }, [])
+    const cliente = supabase!
+    let ativo = true
 
-  const sair = useCallback(() => setAutenticado(false), [])
+    // Uma sessão válida pode já existir (recarregar a página, outra aba).
+    void cliente.auth.getSession().then(({ data }) => {
+      if (!ativo) return
+      setAutenticado(Boolean(data.session))
+      setEmail(data.session?.user.email ?? null)
+      setVerificando(false)
+    })
 
-  const valor = useMemo(() => ({ autenticado, entrar, sair }), [autenticado, entrar, sair])
+    // Mantém a UI em sincronia com renovação e expiração do token.
+    const { data: inscricao } = cliente.auth.onAuthStateChange((_evento, sessao) => {
+      setAutenticado(Boolean(sessao))
+      setEmail(sessao?.user.email ?? null)
+      setVerificando(false)
+    })
+
+    return () => {
+      ativo = false
+      inscricao.subscription.unsubscribe()
+    }
+  }, [remoto])
+
+  const entrar = useCallback(
+    async (endereco: string, senha: string): Promise<string | null> => {
+      if (!remoto) {
+        if (senha !== SENHA_DEMO) return 'Senha incorreta.'
+        setAutenticado(true)
+        try {
+          sessionStorage.setItem(SESSAO_DEMO_KEY, '1')
+        } catch {
+          /* armazenamento indisponível */
+        }
+        return null
+      }
+
+      const { error } = await supabase!.auth.signInWithPassword({
+        email: endereco.trim(),
+        password: senha,
+      })
+      if (error) return traduzir(error.message)
+      return null
+    },
+    [remoto],
+  )
+
+  const sair = useCallback(async () => {
+    if (remoto) {
+      await supabase!.auth.signOut()
+    } else {
+      try {
+        sessionStorage.removeItem(SESSAO_DEMO_KEY)
+      } catch {
+        /* armazenamento indisponível */
+      }
+    }
+    setAutenticado(false)
+    setEmail(null)
+  }, [remoto])
+
+  const valor = useMemo(
+    () => ({ autenticado, verificando, remoto, email, entrar, sair }),
+    [autenticado, verificando, remoto, email, entrar, sair],
+  )
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>
 }

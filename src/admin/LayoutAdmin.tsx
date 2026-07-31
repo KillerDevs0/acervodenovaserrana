@@ -16,11 +16,11 @@ function classeItem({ isActive }: { isActive: boolean }) {
 
 export default function LayoutAdmin() {
   const [menuAberto, setMenuAberto] = useState(false)
-  const { sair } = useAuth()
+  const { sair, email } = useAuth()
   const navegar = useNavigate()
 
-  const aoSair = () => {
-    sair()
+  const aoSair = async () => {
+    await sair()
     navegar('/admin/entrar', { replace: true })
   }
 
@@ -88,8 +88,11 @@ export default function LayoutAdmin() {
             <ExternalLink size={13} aria-hidden="true" />
             Ver o site
           </Link>
+          {email && (
+            <p className="text-[11px] text-muted-foreground/70 break-all leading-relaxed">{email}</p>
+          )}
           <button
-            onClick={aoSair}
+            onClick={() => void aoSair()}
             className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
           >
             <LogOut size={13} aria-hidden="true" />

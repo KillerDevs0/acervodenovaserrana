@@ -1,25 +1,46 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Lock } from 'lucide-react'
 import { LOGO_SRC } from '../../data'
 import { useAuth } from '../auth'
 
+const CLASSE_CAMPO =
+  'w-full bg-[#12100c] border px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-colors'
+
 export default function Entrar() {
-  const { autenticado, entrar } = useAuth()
+  const { autenticado, verificando, remoto, entrar } = useAuth()
+  const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
+  const [enviando, setEnviando] = useState(false)
   const navegar = useNavigate()
+  const local = useLocation()
 
-  if (autenticado) return <Navigate to="/admin" replace />
+  if (verificando) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <p className="text-sm text-muted-foreground">Verificando sessão…</p>
+      </div>
+    )
+  }
 
-  const enviar = (e: React.FormEvent) => {
+  if (autenticado) {
+    const destino = (local.state as { de?: string } | null)?.de ?? '/admin'
+    return <Navigate to={destino} replace />
+  }
+
+  const enviar = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (entrar(senha)) {
-      navegar('/admin', { replace: true })
-    } else {
-      setErro('Senha incorreta.')
+    setEnviando(true)
+    setErro('')
+    const falha = await entrar(email, senha)
+    if (falha) {
+      setErro(falha)
       setSenha('')
+      setEnviando(false)
+      return
     }
+    navegar((local.state as { de?: string } | null)?.de ?? '/admin', { replace: true })
   }
 
   return (
@@ -34,45 +55,71 @@ export default function Entrar() {
           </p>
         </div>
 
-        <form onSubmit={enviar} className="border border-border bg-card p-7">
-          <label htmlFor="senha" className="block text-[11px] uppercase tracking-widest mb-2">
-            Senha de acesso
-          </label>
-          <input
-            id="senha"
-            type="password"
-            autoComplete="current-password"
-            autoFocus
-            value={senha}
-            onChange={(e) => {
-              setSenha(e.target.value)
-              setErro('')
-            }}
-            aria-invalid={erro ? true : undefined}
-            aria-describedby={erro ? 'senha-erro' : undefined}
-            className={`w-full bg-[#12100c] border px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-colors ${
-              erro ? 'border-[#c04060]' : 'border-border'
-            }`}
-          />
+        <form onSubmit={enviar} className="border border-border bg-card p-7 flex flex-col gap-5">
+          {remoto && (
+            <div>
+              <label htmlFor="email" className="block text-[11px] uppercase tracking-widest mb-2">
+                E-mail
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="username"
+                autoFocus
+                required
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  setErro('')
+                }}
+                className={`${CLASSE_CAMPO} ${erro ? 'border-[#c04060]' : 'border-border'}`}
+              />
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="senha" className="block text-[11px] uppercase tracking-widest mb-2">
+              {remoto ? 'Senha' : 'Senha de acesso'}
+            </label>
+            <input
+              id="senha"
+              type="password"
+              autoComplete="current-password"
+              autoFocus={!remoto}
+              required
+              value={senha}
+              onChange={(e) => {
+                setSenha(e.target.value)
+                setErro('')
+              }}
+              aria-invalid={erro ? true : undefined}
+              aria-describedby={erro ? 'login-erro' : undefined}
+              className={`${CLASSE_CAMPO} ${erro ? 'border-[#c04060]' : 'border-border'}`}
+            />
+          </div>
+
           {erro && (
-            <p id="senha-erro" role="alert" className="text-xs text-[#e06080] mt-2">
+            <p id="login-erro" role="alert" className="text-xs text-[#e06080]">
               {erro}
             </p>
           )}
 
           <button
             type="submit"
-            className="mt-6 w-full flex items-center justify-center gap-2 bg-accent text-accent-foreground px-6 py-3 text-[11px] uppercase tracking-widest font-semibold hover:bg-accent/90 transition-colors"
+            disabled={enviando}
+            className="mt-1 w-full flex items-center justify-center gap-2 bg-accent text-accent-foreground px-6 py-3 text-[11px] uppercase tracking-widest font-semibold hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Lock size={13} aria-hidden="true" />
-            Entrar
+            {enviando ? 'Entrando…' : 'Entrar'}
           </button>
         </form>
 
-        <p className="text-xs text-muted-foreground text-center mt-6 leading-relaxed">
-          Ambiente de demonstração. A senha é verificada no navegador e o conteúdo fica salvo apenas
-          neste dispositivo.
-        </p>
+        {!remoto && (
+          <p className="text-xs text-muted-foreground text-center mt-6 leading-relaxed">
+            Ambiente de demonstração. A senha é verificada no navegador e o conteúdo fica salvo
+            apenas neste dispositivo.
+          </p>
+        )}
       </div>
     </div>
   )
