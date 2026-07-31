@@ -6,7 +6,7 @@ import { schemas } from '../schemas'
 import Confirmacao from '../componentes/Confirmacao'
 
 export default function VisaoGeral() {
-  const { conteudo, restaurarPadrao } = useConteudo()
+  const { conteudo, restaurarPadrao, remoto, carregando, erro } = useConteudo()
   const [confirmarRestauro, setConfirmarRestauro] = useState(false)
 
   const exportar = () => {
@@ -27,10 +27,30 @@ export default function VisaoGeral() {
         <p className="text-[10px] uppercase tracking-[0.3em] text-accent mb-3">Visão geral</p>
         <h1 className="font-serif text-3xl font-bold mb-3">Painel do Acervo</h1>
         <p className="text-muted-foreground text-sm leading-relaxed max-w-2xl">
-          {totalItens} {totalItens === 1 ? 'registro publicado' : 'registros publicados'} no acervo
-          digital. As alterações aparecem no site imediatamente.
+          {carregando
+            ? 'Carregando o acervo…'
+            : `${totalItens} ${
+                totalItens === 1 ? 'registro publicado' : 'registros publicados'
+              } no acervo digital. As alterações aparecem no site imediatamente.`}
         </p>
       </header>
+
+      {erro && (
+        <div
+          role="alert"
+          className="border border-[#c04060] bg-[#c04060]/10 px-4 py-3 mb-8 text-sm"
+        >
+          {erro}
+        </div>
+      )}
+
+      {!remoto && (
+        <div className="border border-accent/40 bg-accent/5 px-4 py-3 mb-8 text-sm leading-relaxed">
+          <strong className="font-semibold">Modo local.</strong> O Supabase não está configurado,
+          então o conteúdo é salvo apenas neste navegador. Preencha o <code>.env.local</code> para
+          usar o banco.
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-12">
         {schemas.map(({ id, rotulo, descricao, Icone }) => (
@@ -56,8 +76,9 @@ export default function VisaoGeral() {
       <section className="border border-border bg-card p-7">
         <h2 className="font-serif text-xl font-bold mb-2">Manutenção do acervo</h2>
         <p className="text-sm text-muted-foreground leading-relaxed mb-6 max-w-2xl">
-          O conteúdo é salvo no armazenamento local deste navegador. Exporte um backup em JSON antes
-          de limpar os dados do navegador ou trocar de dispositivo.
+          {remoto
+            ? 'O acervo está no banco de dados e é compartilhado entre todos os editores. O export em JSON serve como cópia de segurança pontual.'
+            : 'O conteúdo é salvo no armazenamento local deste navegador. Exporte um backup em JSON antes de limpar os dados do navegador ou trocar de dispositivo.'}
         </p>
         <div className="flex flex-wrap gap-3">
           <button
@@ -74,13 +95,16 @@ export default function VisaoGeral() {
             <Plus size={13} aria-hidden="true" />
             Novo documentário
           </Link>
-          <button
-            onClick={() => setConfirmarRestauro(true)}
-            className="inline-flex items-center gap-2 border border-border px-5 py-2.5 text-[11px] uppercase tracking-widest text-muted-foreground hover:text-[#e06080] hover:border-[#c04060] transition-colors"
-          >
-            <RotateCcw size={13} aria-hidden="true" />
-            Restaurar conteúdo original
-          </button>
+          {/* Só no modo local: com o banco, isso apagaria o acervo de todos. */}
+          {!remoto && (
+            <button
+              onClick={() => setConfirmarRestauro(true)}
+              className="inline-flex items-center gap-2 border border-border px-5 py-2.5 text-[11px] uppercase tracking-widest text-muted-foreground hover:text-[#e06080] hover:border-[#c04060] transition-colors"
+            >
+              <RotateCcw size={13} aria-hidden="true" />
+              Restaurar conteúdo original
+            </button>
+          )}
         </div>
       </section>
 

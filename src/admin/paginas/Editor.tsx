@@ -23,11 +23,13 @@ export default function Editor() {
     return registro ? { ...registro } : valorInicial(schema)
   })
   const [erros, setErros] = useState<Record<string, string>>({})
+  const [salvando, setSalvando] = useState(false)
+  const [erroSalvar, setErroSalvar] = useState<string | null>(null)
 
   if (!schema) return <Navigate to="/admin" replace />
   if (!novo && !registro) return <Navigate to={`/admin/${schema.id}`} replace />
 
-  const enviar = (e: React.FormEvent) => {
+  const enviar = async (e: React.FormEvent) => {
     e.preventDefault()
     const encontrados = validar(schema, valores)
     setErros(encontrados)
@@ -38,9 +40,16 @@ export default function Editor() {
     }
 
     const dados = normalizar(schema, valores)
-    if (novo) criar(schema.id, dados)
-    else atualizar(schema.id, Number(id), dados)
-    navegar(`/admin/${schema.id}`)
+    setSalvando(true)
+    setErroSalvar(null)
+    try {
+      if (novo) await criar(schema.id, dados)
+      else await atualizar(schema.id, Number(id), dados)
+      navegar(`/admin/${schema.id}`)
+    } catch (erro) {
+      setErroSalvar(erro instanceof Error ? erro.message : 'Não foi possível salvar.')
+      setSalvando(false)
+    }
   }
 
   const previa = schema.campoImagem ? String(valores[schema.campoImagem] ?? '') : ''
@@ -70,6 +79,12 @@ export default function Editor() {
         {Object.keys(erros).length > 0 && (
           <div role="alert" className="border border-[#c04060] bg-[#c04060]/10 px-4 py-3 mb-7 text-sm">
             Revise os campos destacados antes de salvar.
+          </div>
+        )}
+
+        {erroSalvar && (
+          <div role="alert" className="border border-[#c04060] bg-[#c04060]/10 px-4 py-3 mb-7 text-sm">
+            {erroSalvar}
           </div>
         )}
 
@@ -109,10 +124,11 @@ export default function Editor() {
         <div className="flex flex-wrap gap-3 mt-9 pt-7 border-t border-border">
           <button
             type="submit"
-            className="inline-flex items-center gap-2 bg-accent text-accent-foreground px-6 py-3 text-[11px] uppercase tracking-widest font-semibold hover:bg-accent/90 transition-colors"
+            disabled={salvando}
+            className="inline-flex items-center gap-2 bg-accent text-accent-foreground px-6 py-3 text-[11px] uppercase tracking-widest font-semibold hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Check size={13} aria-hidden="true" />
-            {novo ? 'Publicar' : 'Salvar alterações'}
+            {salvando ? 'Salvando…' : novo ? 'Publicar' : 'Salvar alterações'}
           </button>
           <Link
             to={`/admin/${schema.id}`}

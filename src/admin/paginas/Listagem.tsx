@@ -7,9 +7,11 @@ import Confirmacao from '../componentes/Confirmacao'
 
 export default function Listagem() {
   const { colecao = '' } = useParams()
-  const { conteudo, remover, reordenar } = useConteudo()
+  const { conteudo, remover, reordenar, carregando, erro } = useConteudo()
   const [busca, setBusca] = useState('')
   const [aExcluir, setAExcluir] = useState<number | null>(null)
+  const [erroAcao, setErroAcao] = useState<string | null>(null)
+  const [ocupado, setOcupado] = useState(false)
 
   const schema = acharSchema(colecao)
   const itens = schema ? comoRegistros(conteudo[schema.id]) : []
@@ -26,6 +28,19 @@ export default function Listagem() {
 
   const alvo = itens.find((item) => item.id === aExcluir)
   const rotuloAlvo = alvo ? String(alvo[schema.colunas[0]] ?? 'este registro') : ''
+
+  /** Executa uma ação remota mantendo o erro visível em caso de falha. */
+  const executar = async (acao: () => Promise<void>) => {
+    setOcupado(true)
+    setErroAcao(null)
+    try {
+      await acao()
+    } catch (e) {
+      setErroAcao(e instanceof Error ? e.message : 'Não foi possível concluir a ação.')
+    } finally {
+      setOcupado(false)
+    }
+  }
 
   return (
     <div className="max-w-6xl">
@@ -64,7 +79,20 @@ export default function Listagem() {
         />
       </div>
 
-      {filtrados.length === 0 ? (
+      {(erro || erroAcao) && (
+        <div
+          role="alert"
+          className="border border-[#c04060] bg-[#c04060]/10 px-4 py-3 mb-5 text-sm"
+        >
+          {erroAcao ?? erro}
+        </div>
+      )}
+
+      {carregando ? (
+        <div className="border border-border border-dashed p-14 text-center">
+          <p className="text-sm text-muted-foreground">Carregando o acervo…</p>
+        </div>
+      ) : filtrados.length === 0 ? (
         <div className="border border-border border-dashed p-14 text-center">
           <p className="text-sm text-muted-foreground">
             {busca
@@ -118,16 +146,16 @@ export default function Listagem() {
                     <td className="p-3">
                       <div className="flex items-center justify-end gap-1">
                         <button
-                          onClick={() => reordenar(schema.id, id, -1)}
-                          disabled={indice === 0}
+                          onClick={() => void executar(() => reordenar(schema.id, id, -1))}
+                          disabled={indice === 0 || ocupado}
                           aria-label="Mover para cima"
                           className="p-2 text-muted-foreground hover:text-accent disabled:opacity-25 disabled:hover:text-muted-foreground transition-colors"
                         >
                           <ChevronUp size={15} />
                         </button>
                         <button
-                          onClick={() => reordenar(schema.id, id, 1)}
-                          disabled={indice === itens.length - 1}
+                          onClick={() => void executar(() => reordenar(schema.id, id, 1))}
+                          disabled={indice === itens.length - 1 || ocupado}
                           aria-label="Mover para baixo"
                           className="p-2 text-muted-foreground hover:text-accent disabled:opacity-25 disabled:hover:text-muted-foreground transition-colors"
                         >
@@ -142,8 +170,9 @@ export default function Listagem() {
                         </Link>
                         <button
                           onClick={() => setAExcluir(id)}
+                          disabled={ocupado}
                           aria-label={`Excluir ${String(item[schema.colunas[0]] ?? '')}`}
-                          className="p-2 text-muted-foreground hover:text-[#e06080] transition-colors"
+                          className="p-2 text-muted-foreground hover:text-[#e06080] disabled:opacity-25 transition-colors"
                         >
                           <Trash2 size={15} />
                         </button>
@@ -163,8 +192,9 @@ export default function Listagem() {
           mensagem={`“${rotuloAlvo}” será removido do acervo e deixará de aparecer no site. Esta ação não pode ser desfeita.`}
           onCancelar={() => setAExcluir(null)}
           onConfirmar={() => {
-            remover(schema.id, aExcluir)
+            const id = aExcluir
             setAExcluir(null)
+            void executar(() => remover(schema.id, id))
           }}
         />
       )}
