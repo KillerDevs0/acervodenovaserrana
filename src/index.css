@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0f0d0a;
+  --foreground: #e8e0d0;
+  --card: #1a1814;
+  --card-foreground: #e8e0d0;
+  --muted: #2a2520;
+  --muted-foreground: #8a7f6e;
+  --border: #e8e0d01a;
+  --input: #e8e0d014;
+  --input-background: #e8e0d00f;
+  --primary: #1a2d6b;
+  --primary-foreground: #e8e0d0;
+  --secondary: #2a2520;
+  --secondary-foreground: #e8e0d0;
+  --accent: #c49010;
+  --accent-foreground: #0f0d0a;
+  --ring: #c49010;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Source Sans 3', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hide scrollbar for timeline horizontal scroll */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

@@ -1,0 +1,33 @@
+# Dependências
+node_modules/
+
+# Build
+dist/
+*.tsbuildinfo
+
+# Variáveis de ambiente (chaves do Supabase ficam aqui)
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editores e sistema
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Ferramental local do Kiro (skills de design/marca, não código do acervo)
+.kiro/
+.claude/
+
+# Export bruto do Figma — não referenciado por src/ nem index.html
+figma-bundle.js
+figma-styles.css
