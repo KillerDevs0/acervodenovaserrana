@@ -63,6 +63,14 @@ export default function Listagem() {
         </div>
       </header>
 
+      {schema.dadosPessoais && (
+        <div className="border border-accent/40 bg-accent/5 px-4 py-3 mb-5 text-sm leading-relaxed">
+          <strong className="font-semibold">Dados pessoais.</strong> Estes registros identificam
+          pessoas reais. Só publique com o consentimento do titular registrado, e guarde o termo
+          assinado. A pedido do titular, o registro deve ser despublicado ou excluído.
+        </div>
+      )}
+
       <div className="relative mb-5 max-w-sm">
         <Search
           size={14}
@@ -138,11 +146,35 @@ export default function Listagem() {
                         />
                       </td>
                     )}
-                    {schema.colunas.map((coluna, i) => (
-                      <td key={coluna} className={`p-3 align-middle ${i === 0 ? 'font-medium' : 'text-muted-foreground'}`}>
-                        <span className="line-clamp-2">{String(item[coluna] ?? '—') || '—'}</span>
-                      </td>
-                    ))}
+                    {schema.colunas.map((coluna, i) => {
+                      const bruto = item[coluna]
+                      // Booleano vira etiqueta: "true" não diz nada a quem cataloga.
+                      if (typeof bruto === 'boolean') {
+                        return (
+                          <td key={coluna} className="p-3 align-middle">
+                            <span
+                              className={`inline-block text-[10px] uppercase tracking-widest px-2 py-1 border ${
+                                bruto
+                                  ? 'border-accent/40 text-accent'
+                                  : 'border-border text-muted-foreground'
+                              }`}
+                            >
+                              {bruto ? 'Publicado' : 'Rascunho'}
+                            </span>
+                          </td>
+                        )
+                      }
+                      return (
+                        <td
+                          key={coluna}
+                          className={`p-3 align-middle ${
+                            i === 0 ? 'font-medium' : 'text-muted-foreground'
+                          }`}
+                        >
+                          <span className="line-clamp-2">{String(bruto ?? '—') || '—'}</span>
+                        </td>
+                      )
+                    })}
                     <td className="p-3">
                       <div className="flex items-center justify-end gap-1">
                         <button

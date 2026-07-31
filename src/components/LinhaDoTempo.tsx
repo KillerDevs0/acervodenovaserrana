@@ -6,8 +6,8 @@ const LARGURA_MARCO = 240
 
 export default function LinhaDoTempo() {
   const trilha = useRef<HTMLDivElement>(null)
-  const { conteudo } = useConteudo()
-  const { timeline } = conteudo
+  const { conteudoPublico } = useConteudo()
+  const { timeline } = conteudoPublico
 
   const rolar = (direcao: -1 | 1) =>
     trilha.current?.scrollBy({ left: direcao * LARGURA_MARCO, behavior: 'smooth' })

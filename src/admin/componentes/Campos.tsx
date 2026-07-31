@@ -7,7 +7,7 @@ interface Props {
   campo: Campo
   valor: unknown
   erro?: string
-  onChange: (valor: string) => void
+  onChange: (valor: string | boolean) => void
 }
 
 export default function CampoFormulario({ campo, valor, erro, onChange }: Props) {
@@ -17,6 +17,39 @@ export default function CampoFormulario({ campo, valor, erro, onChange }: Props)
   const descricao = [idErro, idAjuda].filter(Boolean).join(' ') || undefined
   const texto = valor === undefined || valor === null ? '' : String(valor)
   const borda = erro ? 'border-[#c04060]' : 'border-border'
+
+  // Caixa de seleção inverte a ordem: controle antes do rótulo.
+  if (campo.tipo === 'booleano') {
+    return (
+      <div className="border border-border bg-[#12100c] p-4">
+        <div className="flex items-start gap-3">
+          <input
+            id={id}
+            type="checkbox"
+            checked={valor === true}
+            aria-describedby={descricao}
+            onChange={(e) => onChange(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-[#c49010] cursor-pointer"
+          />
+          <div className="min-w-0">
+            <label htmlFor={id} className="block text-[11px] uppercase tracking-widest cursor-pointer">
+              {campo.rotulo}
+            </label>
+            {campo.ajuda && (
+              <p id={idAjuda} className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                {campo.ajuda}
+              </p>
+            )}
+          </div>
+        </div>
+        {erro && (
+          <p id={idErro} className="text-xs text-[#e06080] mt-2">
+            {erro}
+          </p>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -78,6 +111,21 @@ export default function CampoFormulario({ campo, valor, erro, onChange }: Props)
             onChange={(e) => onChange(e.target.value)}
           />
         </div>
+      )}
+
+      {campo.tipo === 'data' && (
+        <input
+          id={id}
+          type="date"
+          // Consentimento não pode ser datado no futuro.
+          max={new Date().toISOString().slice(0, 10)}
+          className={`${CLASSE_BASE} ${borda}`}
+          value={texto}
+          aria-required={campo.obrigatorio}
+          aria-invalid={erro ? true : undefined}
+          aria-describedby={descricao}
+          onChange={(e) => onChange(e.target.value)}
+        />
       )}
 
       {(campo.tipo === 'texto' || campo.tipo === 'url' || campo.tipo === 'numero') && (

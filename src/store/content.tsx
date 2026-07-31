@@ -108,8 +108,29 @@ function mensagem(erro: unknown) {
   return erro instanceof Error ? erro.message : 'Ocorreu um erro inesperado.'
 }
 
+/**
+ * Filtra rascunhos para o site público.
+ *
+ * O RLS dá leitura completa a editores, então quem está logado receberia
+ * rascunhos junto — inclusive histórias sem consentimento registrado. O site
+ * usa esta visão; o painel usa `conteudo` inteiro.
+ */
+function apenasPublicados(conteudo: Conteudo): Conteudo {
+  const visivel = (item: unknown) =>
+    (item as { publicado?: boolean }).publicado !== false
+  return {
+    documentarios: conteudo.documentarios.filter(visivel),
+    historias: conteudo.historias.filter(visivel),
+    fotos: conteudo.fotos.filter(visivel),
+    timeline: conteudo.timeline.filter(visivel),
+    estados: conteudo.estados.filter(visivel),
+  }
+}
+
 interface ContextoConteudo {
   conteudo: Conteudo
+  /** Conteúdo sem rascunhos — o que o site público exibe. */
+  conteudoPublico: Conteudo
   /** Verdadeiro durante a carga inicial do banco. */
   carregando: boolean
   /** Erro da última leitura do banco, se houver. */
@@ -257,9 +278,12 @@ export function ProvedorConteudo({ children }: { children: ReactNode }) {
     setConteudo(conteudoInicial())
   }, [remoto])
 
+  const conteudoPublico = useMemo(() => apenasPublicados(conteudo), [conteudo])
+
   const valor = useMemo(
     () => ({
       conteudo,
+      conteudoPublico,
       carregando,
       erro,
       remoto,
@@ -272,6 +296,7 @@ export function ProvedorConteudo({ children }: { children: ReactNode }) {
     }),
     [
       conteudo,
+      conteudoPublico,
       carregando,
       erro,
       remoto,

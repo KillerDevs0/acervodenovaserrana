@@ -8,7 +8,15 @@ import type { ColecaoId } from '../store/content'
  * campo, basta descrevê-lo neste arquivo.
  */
 
-export type TipoCampo = 'texto' | 'textarea' | 'numero' | 'url' | 'cor' | 'select'
+export type TipoCampo =
+  | 'texto'
+  | 'textarea'
+  | 'numero'
+  | 'url'
+  | 'cor'
+  | 'select'
+  | 'booleano'
+  | 'data'
 
 export interface Campo {
   nome: string
@@ -20,6 +28,8 @@ export interface Campo {
   opcoes?: { valor: string; rotulo: string }[]
   min?: number
   max?: number
+  /** Valor de um registro novo. Sem isso, campos começam vazios. */
+  padrao?: unknown
 }
 
 export interface SchemaColecao {
@@ -32,6 +42,8 @@ export interface SchemaColecao {
   colunas: string[]
   /** Campo com a imagem de miniatura da listagem, se houver. */
   campoImagem?: string
+  /** Marca coleções com dados pessoais de terceiros, sujeitas à LGPD. */
+  dadosPessoais?: boolean
   campos: Campo[]
 }
 
@@ -60,16 +72,18 @@ export const schemas: SchemaColecao[] = [
         obrigatorio: true,
         ajuda: 'URL da imagem, proporção 16:9',
       },
+      { nome: 'publicado', rotulo: 'Visível no site', tipo: 'booleano', padrao: true },
     ],
   },
   {
     id: 'historias',
     rotulo: 'Histórias',
     rotuloSingular: 'história',
-    descricao: 'Relatos de moradores e memória oral.',
+    descricao: 'Relatos de moradores e memória oral. Contém dados pessoais.',
     Icone: Users,
-    colunas: ['nome', 'origem', 'chegada'],
+    colunas: ['nome', 'origem', 'chegada', 'publicado'],
     campoImagem: 'foto',
+    dadosPessoais: true,
     campos: [
       { nome: 'nome', rotulo: 'Nome', tipo: 'texto', obrigatorio: true },
       {
@@ -96,6 +110,25 @@ export const schemas: SchemaColecao[] = [
         ajuda: 'URL da imagem, proporção 4:5',
       },
       { nome: 'citacao', rotulo: 'Citação', tipo: 'textarea', obrigatorio: true },
+      {
+        nome: 'consentimento_em',
+        rotulo: 'Data do consentimento',
+        tipo: 'data',
+        ajuda: 'Quando o titular autorizou a divulgação. Obrigatório para publicar.',
+      },
+      {
+        nome: 'consentimento_obs',
+        rotulo: 'Registro do consentimento',
+        tipo: 'textarea',
+        ajuda: 'Onde está o termo assinado e quais limites o titular impôs ao uso.',
+      },
+      {
+        nome: 'publicado',
+        rotulo: 'Visível no site',
+        tipo: 'booleano',
+        padrao: false,
+        ajuda: 'Só publique com o consentimento do titular registrado acima.',
+      },
     ],
   },
   {
@@ -119,6 +152,7 @@ export const schemas: SchemaColecao[] = [
           { valor: 'row-span-2', rotulo: 'Destaque (altura dupla)' },
         ],
       },
+      { nome: 'publicado', rotulo: 'Visível no site', tipo: 'booleano', padrao: true },
     ],
   },
   {
@@ -132,6 +166,7 @@ export const schemas: SchemaColecao[] = [
       { nome: 'ano', rotulo: 'Ano', tipo: 'numero', obrigatorio: true, min: ANO_MIN, max: ANO_MAX },
       { nome: 'titulo', rotulo: 'Título', tipo: 'texto', obrigatorio: true },
       { nome: 'desc', rotulo: 'Descrição', tipo: 'textarea', obrigatorio: true },
+      { nome: 'publicado', rotulo: 'Visível no site', tipo: 'booleano', padrao: true },
     ],
   },
   {
@@ -172,6 +207,7 @@ export const schemas: SchemaColecao[] = [
         ajuda: 'Coordenada no SVG do mapa (0–500)',
       },
       { nome: 'desc', rotulo: 'Descrição', tipo: 'textarea', obrigatorio: true },
+      { nome: 'publicado', rotulo: 'Visível no site', tipo: 'booleano', padrao: true },
     ],
   },
 ]
@@ -183,8 +219,10 @@ export function acharSchema(id: string): SchemaColecao | undefined {
 export function valorInicial(schema: SchemaColecao): Record<string, unknown> {
   const registro: Record<string, unknown> = {}
   for (const campo of schema.campos) {
-    if (campo.tipo === 'numero') {
-      registro[campo.nome] = ''
+    if (campo.padrao !== undefined) {
+      registro[campo.nome] = campo.padrao
+    } else if (campo.tipo === 'booleano') {
+      registro[campo.nome] = false
     } else if (campo.tipo === 'cor') {
       registro[campo.nome] = '#c49010'
     } else {
@@ -204,6 +242,8 @@ export function validar(
   for (const campo of schema.campos) {
     const bruto = valores[campo.nome]
     const texto = typeof bruto === 'string' ? bruto.trim() : bruto
+
+    if (campo.tipo === 'booleano') continue
 
     if (campo.obrigatorio && (texto === '' || texto === undefined || texto === null)) {
       erros[campo.nome] = 'Campo obrigatório.'
@@ -240,6 +280,22 @@ export function validar(
     if (campo.tipo === 'cor' && typeof texto === 'string' && !/^#[0-9a-f]{6}$/i.test(texto)) {
       erros[campo.nome] = 'Use uma cor no formato #rrggbb.'
     }
+
+    if (campo.tipo === 'data' && typeof texto === 'string') {
+      const data = new Date(`${texto}T00:00:00`)
+      if (Number.isNaN(data.getTime())) {
+        erros[campo.nome] = 'Informe uma data válida.'
+      } else if (data.getTime() > Date.now()) {
+        erros[campo.nome] = 'A data não pode estar no futuro.'
+      }
+    }
+  }
+
+  // Espelha a constraint `historias_exige_consentimento` do banco, para que o
+  // editor veja o impedimento no formulário em vez de um erro de Postgres.
+  if (schema.dadosPessoais && valores.publicado === true && !valores.consentimento_em) {
+    erros.consentimento_em =
+      'Registre a data do consentimento do titular antes de publicar esta história.'
   }
 
   return erros
@@ -255,6 +311,12 @@ export function normalizar(
     const bruto = valores[campo.nome]
     if (campo.tipo === 'numero') {
       saida[campo.nome] = Number(bruto)
+    } else if (campo.tipo === 'booleano') {
+      saida[campo.nome] = bruto === true
+    } else if (campo.tipo === 'data') {
+      // Data vazia é `null` no banco, não string vazia: a coluna é `date`.
+      const texto = typeof bruto === 'string' ? bruto.trim() : ''
+      saida[campo.nome] = texto === '' ? null : texto
     } else {
       saida[campo.nome] = typeof bruto === 'string' ? bruto.trim() : (bruto ?? '')
     }

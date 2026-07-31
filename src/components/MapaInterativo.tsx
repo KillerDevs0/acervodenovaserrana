@@ -6,8 +6,8 @@ import { useConteudo } from '../store/content'
 export default function MapaInterativo() {
   const [hover, setHover] = useState<number | null>(null)
   const [fixado, setFixado] = useState<number | null>(null)
-  const { conteudo } = useConteudo()
-  const { estados } = conteudo
+  const { conteudoPublico } = useConteudo()
+  const { estados } = conteudoPublico
 
   // Bubble size scales with the number of migrant families.
   const maxFamilias = estados.reduce((maior, e) => Math.max(maior, e.familias), 0)

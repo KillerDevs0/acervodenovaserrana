@@ -12,8 +12,8 @@ type AbaId = (typeof abas)[number]['id']
 
 export default function Acervo() {
   const [aba, setAba] = useState<AbaId>('documentarios')
-  const { conteudo } = useConteudo()
-  const { documentarios, historias, fotos } = conteudo
+  const { conteudoPublico } = useConteudo()
+  const { documentarios, historias, fotos } = conteudoPublico
 
   return (
     <section className="py-24 px-6 lg:px-12">
